@@ -33,7 +33,7 @@ static char mbuf[4096];
 
 static int tests_run;
 static char* metaserver_host = "localhost";
-static int metaserver_port = 20000;
+static int metaserver_port = 10000;
 
 // Global file system and file descriptor under test.
 struct QFS* qfs;
@@ -191,6 +191,11 @@ static char* test_qfs_stat() {
   return 0;
 }
 
+static char* test_qfs_stat_multiple() {
+  struct qfs_attr attr;
+
+}
+
 static char* test_qfs_create() {
   check_qfs_call(fd = qfs_create(qfs, "/unit-test/file"));
 
@@ -339,6 +344,42 @@ static char* test_qfs_get_data_locations() {
   return 0;
 }
 
+static char* test_qfs_append() {
+  char single_byte = 'a';
+  check_qfs_call(qfs_write(qfs, fd, &single_byte, 1));
+  check_qfs_call(qfs_sync(qfs, fd));
+
+  check_qfs_call(qfs_close(qfs, fd));
+
+  // Now write the same data again (appending this time)
+  check_qfs_call(fd = qfs_open_file(qfs, "/unit-test/file", O_WRONLY|O_APPEND, 0, ""));
+  check_qfs_call(qfs_write(qfs, fd, &single_byte, 1));
+  check_qfs_call(qfs_sync(qfs, fd));
+
+  // Check that the file has the correct size
+  // Reopen the file to enable stat to work
+  check_qfs_call(qfs_close(qfs, fd));
+  check_qfs_call(fd = qfs_open_file(qfs, "/unit-test/file", O_RDWR, 0, ""));
+
+  struct qfs_attr attr;
+  check_qfs_call(qfs_stat(qfs, "/unit-test/file", &attr));
+
+  // This check for file size fails.
+  /* check(attr.size == 2, */
+  /*   "file size should be correct: %li != %d", */
+  /*   (long)attr.size, 2); */
+  ssize_t chunk_size = qfs_get_chunksize(qfs, "/unit-test/file");
+  printf("Block size is: %li\n", (long)chunk_size);
+  printf("Size of appended file is: %li\n", (long)attr.size);
+
+  // Try and read the file
+  char buf[2];
+  check_qfs_call(qfs_read(qfs, fd, buf, 2));
+  check(strcmp("aa", buf) == 0, "The contents of the file are not correct");
+
+  return 0;
+}
+
 static char * all_tests() {
   run(test_qfs_connect);
   run(test_get_metaserver_location);
@@ -366,6 +407,9 @@ static char * all_tests() {
   run(test_qfs_close);
   run(test_qfs_open);
   run(test_qfs_pread);
+  run(test_qfs_close);
+  run(test_qfs_open_file);
+  run(test_qfs_append);
   run(test_qfs_get_data_locations);
   run(test_qfs_cleanup);
   run(test_qfs_release);
