@@ -245,6 +245,20 @@ func (qfs *Client) RemoveAll(path string) error {
 	return nil
 }
 
+// Rename a file or directory from oldpath to newpath.
+func (qfs *Client) Rename(oldpath, newpath string) error {
+	old := C.CString(oldpath)
+	defer freeCString(old)
+
+	new := C.CString(newpath)
+	defer freeCString(new)
+
+	if res := C.qfs_rename(qfs.qfs, old, new); res < 0 {
+		return errFromQfs(res)
+	}
+	return nil
+}
+
 // UmaskSet sets the umask for this Client.
 func (qfs *Client) UmaskSet(perm os.FileMode) {
 	C.qfs_set_umask(qfs.qfs, C.mode_t(perm))
