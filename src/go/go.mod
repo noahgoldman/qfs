@@ -14,6 +14,6 @@
 // implied. See the License for the specific language governing
 // permissions and limitations under the License.
 
-module github.com/quantcast/qfs/src/go
+module github.com/noahgoldman/qfs/src/go/v2
 
 require golang.org/x/sys v0.0.0-20181011152604-fa43e7bc11ba
